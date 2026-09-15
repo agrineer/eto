@@ -3,16 +3,15 @@ A Step-by-Step Guide to ETo Project computing.
 ** put brief description of ETo and equation here. indicate that the
 variables are the {features, bands, buffers}
 and contruct signal for each geographic pixel **
-** declare that we are jumping into climate anaylis using previously genrated weather files. 
 
-define 'climate' to be a set of weather classes that a pixel experiences.
+** declare that we are jumping into climate anaylis using previously generated weather files. 
 
-1D climate is derived by using weather class frequency histograms (1D) as
-the feature signal for each pixel.
-ie. train on the histogram signals to get 'climate' classes
+define 'climate' to be a set of weather classes and frequency that a pixel experiences.
+
+1D climate is derived by using weather class frequency histograms (1D) as the feature signal for each pixel,ie. train on the histogram signals to get 'climate' classes
 
 2D climate is derived by using a binary 2D image with weather classes on one
-axis and days on the other axis. ie. for every day there is a weather class
+axis and days on the other axis, ie. for every day there is a weather class
 which gets marked on the image, making the data sparse.
 
 ** WRF hourly output of 10 variables --> 8 ETo variables --> interlaced feature
