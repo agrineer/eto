@@ -48,9 +48,19 @@ https://agrineer.org/publish/eto and from some preprocessing as described below.
 It is important to have the correct environmental paths set, such as $POLI_HOME, $ETO_HOME, etc.
 This can be done in ~/.bash_profile. An example is given below:
 
-                                ***************************
+# POLI paths and variables 
+export POLI_HOME=/home/user/poli
+export POLI_URL=https://agrineer.org/publish
+export PYTHONPATH=$POLI_HOME/frame:$POLI_HOME/operators:$PYTHONPATH
+export PATH=$POLI_HOME/bin:$PATH
 
-Be sure to declare these variables in your profile before continuing.
+export ETO_HOME=~/eto
+export ETO_DATA=~/eto_data
+export PYTHONPATH=$ETO_HOME/bin:$PYTHONPATH
+export PATH=$ETO_HOME/bin:$PATH
+
+Be sure to declare these variables in your profile before continuing. Also
+you must have a working POLI, a sister project.
 
 # -----------------------------------------------------------
 STEP 1: Extract or clone the ETo project code.
