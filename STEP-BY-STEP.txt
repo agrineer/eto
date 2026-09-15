@@ -1,0 +1,361 @@
+A Step-by-Step Guide to ETo Project computing.
+
+** put brief description of ETo and equation here. indicate that the
+variables are the {features, bands, buffers}
+and contruct signal for each geographic pixel **
+** declare that we are jumping into climate anaylis using previously genrated weather files. 
+
+define 'climate' to be a set of weather classes that a pixel experiences.
+
+1D climate is derived by using weather class frequency histograms (1D) as
+the feature signal for each pixel.
+ie. train on the histogram signals to get 'climate' classes
+
+2D climate is derived by using a binary 2D image with weather classes on one
+axis and days on the other axis. ie. for every day there is a weather class
+which gets marked on the image, making the data sparse.
+
+** WRF hourly output of 10 variables --> 8 ETo variables --> interlaced feature
+normalization --> {trained, clustered, fitted} --> weather classes
+
+Software Prerequisites:
+
+* GNU/Linux OS (preferably Debian based), Python 3.12, build_essentials, etc., ability to navigate directories with terminal commands and to edit files, eg.using VIM, EMACS, ....
+
+* POLI (Python On Line Imaging), a sister package, must be installed as ETo scripts use the POLI operators. 
+
+* ETo implementation is best done with one directory containing code/data and another directory encapsulating the working environment, this facilitates upgrades to different environments. For example,
+
+.eto - bin
+     - lib
+     - lib64
+     - share
+     - pyvenv.cfg
+     - requirements.txt
+
+eto - bin
+    - climate_1D
+    - climate_2D
+    - weather
+    - misc
+    - README.md
+    - STEP-BY-STEP.txt
+
+The .eto Python environment can be constructed independently of the eto directories and is recommended in order to facilitate upgrading environments. This is outlined below.
+
+A separate data directory gets populated by downloading from
+https://agrineer.org/publish/eto and from some preprocessing as described below.
+
+It is important to have the correct environmental paths set, such as $POLI_HOME, $ETO_HOME, etc.
+This can be done in ~/.bash_profile. An example is given below:
+
+                                ***************************
+
+Be sure to declare these variables in your profile before continuing.
+
+# -----------------------------------------------------------
+STEP 1: Extract or clone the ETo project code.
+
+Open a terminal. You can, of course, put the eto directory elsewhere but for now we use the user home as an example.
+
+Make the eto directory:
+
+If using a tar file, eg:
+$ tar xvfz eto_20260501.tar.gz
+
+or
+$ git clone https://github.com/yachaytech/eto
+
+You should have the following files and directories in the directory eto:
+$ ls eto
+- bin
+- climate_1D
+- climate_2D
+- misc
+- papers
+- weather
+- README.md
+- STEP-BY-STEP.txt
+
+# -----------------------------------------------------------
+STEP 2: Get the WRF data:
+
+Create a data directory separate from eto or .eto directories, for example:
+$ mkdir ~/eto_data
+
+Link it inside eto directory as "data"
+$ cd eto
+$ ln -s ~/eto_data data
+
+Get the filtered WRF data, each file is about 7.2GB and will take some time to download depending on your network speed.
+These are filtered WRF output files which only contain the required variables to calculate eto values. Graphical rendering of the variables can be seen with the program "ncview" which is part of the NETcdf package. If you have install WRFscripts, a sister project, you should already have "ncview." If not, you can download "ncview" from your package manager. POLI is also capable of reading WRF output, using WRF_src.py.
+
+$ cd data
+$ mkdir wrf
+$ cd wrf
+$ wget agrineer.org/publish/data/ANDES03/ANDES03_2022_FILT.tar.gz
+$ wget agrineer.org/publish/data/ANDES03/ANDES03_2023_FILT.tar.gz
+$ wget agrineer.org/publish/data/ANDES03/ANDES03_2024_FILT.tar.gz
+
+Extract data from the tar files
+$ tar xvfz ANDES03_2022_FILT.tar.gz
+$ tar xvfz ANDES03_2023.FILT.tar.gz
+$ tar xvfz ANDES03_2024.FILT.tar.gz
+
+Bring in the date and LUT files to $ETO_DATA
+$ cd ..  # go to data directory
+
+Don't forget the "." in the next command
+$ cp -R $ETO_HOME/misc/dates .
+
+# -----------------------------------------------------------
+STEP 3: Create the eto Python environment
+
+Create the environment directory. This can be anywhere, but we use the home directory as an example.
+$ cd
+$ python3 -m venv .eto
+
+Files or directories that start with '.' are hidden
+when listing. Use ls -ad to see all the files and directories:the .eto directory
+$ ls -ad .eto
+$ ls -a .eto
+
+should give a response:
+.  ..  bin  .gitignore  include  lib  lib64  pyvenv.cfg
+
+Activate the environment for the current terminal shell:
+$ source .eto/bin/activate
+
+Note that you do not need to be in the .eto directory to use the .eto environmental.
+
+You should see your shell prompt changes with a prefix
+showing the environmant, ie. (.eto)
+
+Bring in python requirements:
+(.eto) $ pip3 install -r $ETO_HOME/misc/requirements.txt
+
+You should have a working eto environment.
+
+# -----------------------------------------------------------
+STEP 4: preparing WRF data for years 2022-2024 inclusive
+
+The weather directory holds the code for clustering the weather classes for the years 2017-2021 inclusive, which was done on the Azure platform with large memory and compute resources.
+
+At present, we do not need to replicate this effort as we have the files necessary to continue the climate studies, ie. The normalization coefficients (2017-2021.coeffs) and the label files (2017-2021_5x5_4_00724_02.labels,2017-2021_5x5_4_00724_10.labels. A future effort will be to migrate all of the weather implementation to more local platforms.
+
+We have {fitted,clustered,trained} years 2017-2021 for weather classes and can now {predict, classify} the input data for  years 2022-2024. This includes reading the WRF output and formatting the ETo variables, interlaced normalizing the feature buffers, and classifying for each day.
+
+*** How to collect, normalize, and apply classes from 2017-2021:
+
+While in the terminal using the virtual environment go to $ETO_HOME/weather
+(.eto) $ cd $ETO_HOME/weather
+
+Collect 2022-2024 data and convert to the ETo variables
+(.eto) $ ./run_collect.py -y 2022
+(.eto) $ ./run_collect.py -y 2023
+(.eto) $ ./run_collect.py -y 2024
+
+Monthly ETo variable files will be in ../data/eto/YYYY
+Look in $ETO_HOME/data/eto/2022 for the Numpy (.npy) files
+(.eto) $ ls $ETO_HOME/data/eto/2022      # likewise for years 2023,2024
+eg.
+2022-ABR.npy  2022-DIC.npy  2022-FEB.npy  2022-JUN.npy  2022-MAY.npy  2022-OCT.npy
+2022-AGO.npy  2022-ENE.npy  2022-JUL.npy  2022-MAR.npy  2022-NOV.npy  2022-SEP.npy
+
+Normalize the interlaced feature buffers
+(.eto) $ ./run_cnorm.py -f ../misc/2017-2021/2017-2021.coeffs -y 2022
+(.eto) $ ./run_cnorm.py -f ../misc/2017-2021/2017-2021.coeffs -y 2023
+(.eto) $ ./run_cnorm.py -f ../misc/2017-2021/2017-2021.coeffs -y 2024
+
+Monthly normalized ETo variable files will be in ../data/cnorm/YYYY
+Look in $ETO_HOME/data/cnorm/2022 for the Numpy (.npy) files
+(.eto) $ ls $ETO_HOME/data/cnorm/2022      # likewise for years 2023,2024
+eg.
+2022-ABR.npy  2022-DIC.npy  2022-FEB.npy  2022-JUN.npy  2022-MAY.npy  2022-OCT.npy
+2022-AGO.npy  2022-ENE.npy  2022-JUL.npy  2022-MAR.npy  2022-NOV.npy  2022-SEP.npy
+
+{classify, predict} using 2017-2021_5x5_4_00724_02.labels...we can also
+use 2017-2021_5x5_4_00724_10.labels or other repeatable labels
+(.eto) $ ./run_apply.py -f ../misc/2017-2021/2017-2021_5x5_4_00724_02.labels -y 2022
+(.eto) $ ./run_apply.py -f ../misc/2017-2021/2017-2021_5x5_4_00724_02.labels -y 2023
+(.eto) $ ./run_apply.py -f ../misc/2017-2021/2017-2021_5x5_4_00724_02.labels -y 2024
+
+Monthly class files will be in ../data/classes/YYYY. Note that the data size has been signifcantly reduced. 
+
+-----------------------------------------------------------------------------------------`w
+STEP 5: implement the 1D climate {fitting,clustering,training} and {classifying, predicting}
+
+While in the terminal using the virtual environment go to $ETO_HOME/climate_1D
+(.eto) $ cd $ETO_HOME/climate_1D
+
+- Create the histogram data for each day of year 2022 
+(.eto) $ ../bin/make_hists.py -y 2022 -o ../data/1D/2022/2022_hists.npy
+
+     - make_hists.py can also take multi-year arguments, eg.
+     $ ../bin/make_hists.py -y 2022,2023,2024 -o ../data/1D/2022-2024/2022-2024_hists.npy
+     This not needed for now.
+
+- Normalize using max and min from all data
+(.eto) $ znorm -s all -t 0 < ../data/1D/2022/2022_hists.npy > ../data/1D/2022/2022_zahists.npy
+
+- find repeatable msom hyper-parameters...here we exercise hyper-parameters that work.
+
+- run comparison for learning rate=0.3 nepochs=30 decay=linear on normalized data. Parameters are already set in compare_msom.bash
+(.eto) $ ./compare_msom.bash  
+
+- Output is in directory ../data/1D/2022/msom/0.300000_30_linear_zanorm.
+  - Check the diff*.jpg images and the file 'results_0.300000_30.txt'
+  - On occasion, the first classification can be aberrant which will affect all of the pixel difference comparisons.
+  - If you run the cramer comparisons, the first classification comparison measure against others will be low, but other comparisons will be within specifications. The acceptable error rate for repeatibilty is 1 out of 10 above 1.0 % pixel difference.
+  
+- Still in "climate_1D" directory, run the cramer similarity measures as a cross-validation. Parameters are already set for the 0.300000_30_linear_zanorm runs.
+(.eto) $ ./run_cramer.py
+
+- Check the cramer results file for similarity measures on the far right
+(.eto) $ less ../data/1D/2022/msom/0.300000_30_linear_zanorm/cramer/cramer_0.300000_30_zanorm.results
+  
+- A by-product of the Cramer method is a 1-to-1 look-up table (lut) that can be used to transcribe one set of classes (labels) to the other, ie. to render two images in the same colors (labels). The luts from the first run comparisons (generated by "show_diff.py") are in found as a subset in the Cramer luts.
+  
+------------------------------------------------------------------------------------
+
+STEP 6: Apply climate classes to years 2023 and 2024, and show micro-climate differences
+
+- you should still be in directory $ETO_HOME/climate_1D.
+
+- Create 2023 histogram files:
+(.eto) $ ../bin/make_hists.py -y 2023 -o ../data/1D/2023/2023_hists.npy
+(.eto) $ znorm -s all -t 0 < ../data/1D/2023/2023_hists.npy > ../data/1D/2023/2023_zahists.npy
+
+- Create 2024 histogram files:
+(.eto) $ ../bin/make_hists.py -y 2024 -o ../data/1D/2024/2024_hists.npy
+(.eto) $ znorm -s all -t 0 < ../data/1D/2024/2024_hists.npy > ../data/1D/2024/2024_zahists.npy
+
+- Apply a label file from 2022 to the 2023_zahists.npy 2024_zahists.npy and 
+(.eto) $ somclass -f ../data/1D/2022/msom/0.300000_30_linear_zanorm/0.300000_30_0.labels < ../data/1D/2023/2023_zahists.npy > ../data/1D/2023/clim_2023.npy
+(.eto) $ somclass -f ../data/1D/2022/msom/0.300000_30_linear_zanorm/0.300000_30_0.labels < ../data/1D/2024/2024_zahists.npy > ../data/1D/2024/clim_2024.npy
+
+- Show differences between ../data/1D/2022/msom/0.300000_30_zanorm/0.300000_30_0.npy, clim_2023.npy, and clim_2024.npy
+- Use "differ" since images are using same labels
+
+(.eto) $ differ -a -f ../data/1D/2022/msom/0.300000_30_linear_zanorm/0.300000_30_0.npy < ../data/1D/2023/clim_2023.npy | thrsh_simp -t 0 | render -f ../data/1D/2023/diff_2022_2023.png
+(.eto) $ differ -a -f ../data/1D/2022/msom/0.300000_30_linear_zanorm/0.300000_30_0.npy < ../data/1D/2024/clim_2024.npy | thrsh_simp -t 0 | render -f ../data/1D/2024/diff_2022_2024.png
+
+- show 2023 2024 difference
+(.eto) $ differ -f ../data/1D/2023/clim_2023.npy < ../data/1D/2024/clim_2024.npy | render -f ../data/1D/2024/diff_2023_2024.png
+
+-----------------------------------------------------------------------------
+
+STEP 7: 2D implementation of days-weather data
+
+- Create binary 2D images (days, weather classes) for each pixel for year 2022
+
+(.eto) $ cd ../climate_2D
+
+- make a climate binary image for 2022 with hamming smoothing and flatten using column stacking (append)
+- no normalization since values are 0 or 1
+- 'C' stacking means row stacking (C language)
+- 'F' stacking means column stacking (Fortran language)
+
+(.eto) $ ../bin/make_dwdata.py -y 2022 -a F -s F -w hamming -l 9 -o ../data/2D/2022/2022_h9fdw.npy
+
+- check output min and max values. These should be 0 and 1, already normalized.
+
+- run comparisons on smoothed day-weather data;
+
+parameters already set at:
+YEAR=2022
+NEPOCHS=50
+RATE=0.300000 # must have 6 decimal points
+INIT=random   # pca or random
+SIGMA=1.5
+MSOMDIR=../data/2D/$YEAR/msom_col_stack_h9fdw
+INFILE=../data/2D/$YEAR/$YEAR\_h9fdw.npy
+NORM=nonorm     # nonorm, zanorm
+DECAY=linear
+
+(.eto) $ ./compare_msom.bash
+
+- This takes some time ... output is in the directory ../data/2D/2022/msom_col_stack_h9fdw/0.300000_50_linear_nonorm
+
+- Run the cramer similarity measure, parameters are set already...also takes some time
+(.eto) $ ./run_cramer.py
+
+- Running cramer gives a more complete similarity measure than with comparing images. When comparing images, if the first run is aberrant then all comparisons are skewed. Cramer addresses this by comparing the 10 images to each other for a total of 45 comparisons.
+
+- Users are encouraged to vary the parameters, eg. smoothing with 11 or 7 pixels wide, learning rates, and number of epochs. Be sure to change the parameters in compare_msom.bash correctly for your desired run.
+
+--------------------------------------------------------------------------
+step 8: Comparing climates 2022,2023,2024
+
+- Make column stack, hamming 9 day-weather data for years 2023 and 2024
+(.eto) $ ../bin/make_dwdata.py -y 2023 -a F -s F -w hamming -l 9 -o ../data/2D/2023/2023_h9fdw.npy
+(.eto) $ ../bin/make_dwdata.py -y 2024 -a F -s F -w hamming -l 9 -o ../data/2D/2024/2024_h9fdw.npy
+
+- Apply classes from 2022, first run:
+(.eto) $ somclass -f ../data/2D/2022/msom_col_stack_h9fdw/0.300000_50_linear_nonorm/0.300000_50_0.labels < ../data/2D/2023/2023_h9fdw.npy > ../data/2D/2023/clim_2023.npy
+(.eto) $ somclass -f ../data/2D/2022/msom_col_stack_h9fdw/0.300000_50_linear_nonorm/0.300000_50_0.labels < ../data/2D/2024/2024_h9fdw.npy > ../data/2D/2024/clim_2024.npy
+
+- Show differences
+(.eto) $ differ -a -f ../data/2D/2022/msom_col_stack_h9fdw/0.300000_50_linear_nonorm/0.300000_50_0.npy < ../data/2D/2023/clim_2023.npy | thrsh_notch -b -l 1 -u 255 | render -f ../data/2D/2023/diff_2022_2023.png
+(.eto) $ differ -a -f ../data/2D/2022/msom_col_stack_h9fdw/0.300000_50_linear_nonorm/0.300000_50_0.npy < ../data/2D/2024/clim_2024.npy | thrsh_notch -b -l 1 -u 255 | render -f ../data/2D/2024/diff_2022_2024.png
+(.eto) $ differ -a -f ../data/2D/2023/clim_2023.npy < ../data/2D/2024/clim_2024.npy | thrsh_notch -b -l 1 -u 255 | render -f ../data/2D/2024/diff_2023_2024.png
+
+- Users are encouraged to exercise other 2022 runs label file, eg. 0.300000_50_1.labels,0.300000_50_2.labels
+
+----------------------------------------------------------------------------
+Step 9: Comparing 1D climate and 2D climate
+
+- The modified Cramer's V method used above does not support labels with different weight dimensions.
+
+- However, we know that both classifications have 12 labels and that we can find a 1-to-1 mapping through exhaustive comparisons, keeping the mapping that gives a minimum pixel difference. There are 12! = 479001600 combinations to consider in which a transcription is made and images compared.
+
+- A serial implementation is given in the program "brute_diff.py" which takes about 48 hours to complete. An example:
+
+(.eto) $ ../bin/brute_diff.py -f ../data/1D/2022/msom/0.300000_30_zanorm/0.300000_30_0.npy -s ../data/2D/2022/msom_row_stack/0.300000_25_linear_first/0.300000_25_1.npy -n 12
+
+- A faster version is given in the parallel program "mpi_diff.py" and takes about 4 hours to complete with 14 cores. You must have mpi4py and MPICH installed. If you installed WRFscripts, a sister project, you should have the MPICH environment already.
+
+- mpi_diff.py example:
+(.eto) $ mpiexec -f ~/mpd.hosts ../bin/mpi_diff.py -f ../data/1D/2022/msom/0.300000_30_linear_zanorm/0.300000_30_0.npy -s ../data/2D/2022/msom_col_stack_h9fdw/0.300000_50_linear_nonorm/0.300000_50_0.npy -c 12
+
+# use the mpd.hosts file for multi-computer execution.
+# sample contents of mpd.hosts:
+
+# host:slots 
+opportunity:8
+curiosity:6
+
+if executing within one computer you can use: mpiexec -n number_of_cores instead of mpiexec -f mpd.hosts ....
+
+# ----------------------------------------------------------------------
+Some Observations:
+
+- Going too low on learning rate results in less granular resolution.
+
+- QE/TEvalues can be useful for convergence determination, however these are not used in this study.
+
+- Time gets expressed in the stacking. Remember that histogram (1D) is a collapsed version of day-classes image.
+
+-  Row stacking means flattening the image by appending rows to construct a signal for SOM.
+   Time is expressed in the stacking, ie
+   [W11, W12, ..., W1N], [W21, W22, ..., W2N], ... , [Wn1, Wn2, ..., WnN]
+   where W is the weather class, N is the class label, n is day index
+
+   Smoothing this signal per pixel does improve repeatability, however it also introduces class crossover influences that can diminish class expression/integrity, making the signal less coherent overall.
+
+-  Column stacking and smoothing produces no class cross-contamination, even at class joining (stacking).
+   Column smoothing only operates on one class at a time since it is done before stacking. Compare this to row stacking.
+
+   An interesting way to view column (class) smoothing is that it introduces partial fractional) weather class values into neighboring days, and so turns the binary image into a more realistic reflection of days having a mixture of weather classes.
+
+-  More epochs can improve repeatability, but obviously takes much longer.
+    
+#-------------------------------------------------------------------------
+
+Some next steps:
+
+- Faster SOM implementaions, GPU/MPICH/OPENMP
+
+- Adaptive SOM epochs with QE/TE consideration
+
+- Ground truthing with weather stations/flux stations where available.
